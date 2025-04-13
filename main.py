@@ -15,13 +15,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # for local dev
-        "http://pit4-todo-list-fastapi.netlify.app",
-    ],  # your deployed frontend],  # Change as needed for production
+        "http://pit4-todo-list-fastapi.netlify.app",  # your deployed frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Dependency to get the database session
 def get_db():
     db = SessionLocal()
     try:
@@ -29,53 +30,56 @@ def get_db():
     finally:
         db.close()
 
-# Pydantic schemas for validation
-class TodoCreate(BaseModel):
-    title: str
-    completed: bool = False
+# Pydantic model for tasks
+class TodoBase(BaseModel):
+    text: str
+    completed: bool
 
-class TodoOut(TodoCreate):
+class TodoCreate(TodoBase):
+    pass
+
+class TodoUpdate(TodoBase):
+    pass
+
+class TodoInResponse(TodoBase):
     id: int
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
-# Create a task
-@app.post("/api/todos/create/", response_model=TodoOut)
-def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
-    db_todo = Todo(**todo.dict())
-    db.add(db_todo)
+# Get all tasks
+@app.get("/tasks", response_model=List[TodoInResponse])
+def get_tasks(db: Session = Depends(get_db)):
+    tasks = db.query(Todo).all()
+    return tasks
+
+# Create a new task
+@app.post("/tasks", response_model=TodoInResponse)
+def create_task(task: TodoCreate, db: Session = Depends(get_db)):
+    db_task = Todo(text=task.text, completed=task.completed)
+    db.add(db_task)
     db.commit()
-    db.refresh(db_todo)
-    return db_todo
-
-# Fetch all tasks
-@app.get("/api/todos/fetch/", response_model=List[TodoOut])
-def fetch_todos(db: Session = Depends(get_db)):
-    return db.query(Todo).all()
-
-@app.get("/")
-def root():
-    return {"message": "FastAPI backend is running."}
+    db.refresh(db_task)
+    return db_task
 
 # Update a task
-@app.put("/api/todos/{todo_id}/update/", response_model=TodoOut)
-def update_todo(todo_id: int, updated: TodoCreate, db: Session = Depends(get_db)):
-    todo = db.query(Todo).filter(Todo.id == todo_id).first()
-    if not todo:
-        raise HTTPException(status_code=404, detail="Todo not found")
-    todo.title = updated.title
-    todo.completed = updated.completed
+@app.put("/tasks/{task_id}", response_model=TodoInResponse)
+def update_task(task_id: int, task: TodoUpdate, db: Session = Depends(get_db)):
+    db_task = db.query(Todo).filter(Todo.id == task_id).first()
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db_task.text = task.text
+    db_task.completed = task.completed
     db.commit()
-    db.refresh(todo)
-    return todo
+    db.refresh(db_task)
+    return db_task
 
 # Delete a task
-@app.delete("/api/todos/{todo_id}/delete/")
-def delete_todo(todo_id: int, db: Session = Depends(get_db)):
-    todo = db.query(Todo).filter(Todo.id == todo_id).first()
-    if not todo:
-        raise HTTPException(status_code=404, detail="Todo not found")
-    db.delete(todo)
+@app.delete("/tasks/{task_id}")
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    db_task = db.query(Todo).filter(Todo.id == task_id).first()
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db.delete(db_task)
     db.commit()
-    return {"message": "Todo deleted"}
+    return {"detail": "Task deleted"}
