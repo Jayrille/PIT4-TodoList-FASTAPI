@@ -6,8 +6,8 @@ app = FastAPI()
 
 # Allow frontend on Vite dev server
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    CORSMiddleware,  # Fix the typo here
+    allow_origins=["https://pit4-todo-list-fastapi.netlify.app"],  # Your Netlify frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
