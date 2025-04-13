@@ -14,6 +14,8 @@ export default function TodoList() {
         return localStorage.getItem("darkMode") === "true";
     });
 
+    const API_URL = "https://pit4-todolist-fastapi.onrender.com";
+
     useEffect(() => {
         localStorage.setItem("darkMode", darkMode);
         document.body.style.backgroundColor = darkMode ? "#1a1a1a" : "#eae0c8";
@@ -22,7 +24,7 @@ export default function TodoList() {
     useEffect(() => {
         async function fetchTasks() {
             try {
-                const response = await axios.get("http://localhost:8000/todos");
+                const response = await axios.get(`${API_URL}/todos`);
                 setTasks(response.data);
             } catch (error) {
                 console.error("Error fetching tasks:", error);
@@ -33,7 +35,7 @@ export default function TodoList() {
 
     const removeTask = async (id) => {
         try {
-            await axios.delete(`http://localhost:8000/todos/${id}`);
+            await axios.delete(`${API_URL}/todos/${id}`);
             setTasks(tasks.filter((task) => task.id !== id));
         } catch (error) {
             console.error("Error deleting task:", error);
@@ -43,7 +45,7 @@ export default function TodoList() {
     const addTask = async () => {
         if (task.trim() === "") return;
         try {
-            const response = await axios.post("http://localhost:8000/todos", {
+            const response = await axios.post(`${API_URL}/todos`, {
                 text: task,
                 completed: false,
             });
@@ -58,7 +60,7 @@ export default function TodoList() {
         const updatedTask = tasks.find((t) => t.id === id);
         const updatedCompleted = !updatedTask.completed;
         try {
-            await axios.put(`http://localhost:8000/todos/${id}`, {
+            await axios.put(`${API_URL}/todos/${id}`, {
                 ...updatedTask,
                 completed: updatedCompleted,
             });
@@ -78,7 +80,7 @@ export default function TodoList() {
     const confirmEdit = async (index) => {
         const updatedTask = tasks[index];
         try {
-            await axios.put(`http://localhost:8000/todos/${updatedTask.id}`, {
+            await axios.put(`${API_URL}/todos/${updatedTask.id}`, {
                 ...updatedTask,
                 text: editedTask,
             });
