@@ -47,7 +47,7 @@ class TodoInResponse(BaseModel):
     completed: bool
 
     class Config:
-        orm_mode = True  # This is important for FastAPI to properly serialize the SQLAlchemy model
+        from_attributes = True  # New way
 
 
 # Get all tasks
