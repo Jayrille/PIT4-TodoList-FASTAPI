@@ -1,49 +1,81 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import List
+from database import SessionLocal, engine
+from models import Todo, Base
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import TodoCreate
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Allow frontend on Vite dev server
+# CORS Middleware for allowing React frontend to access FastAPI backend
 app.add_middleware(
-    CORSMiddleware,  # Fix the typo here
-    allow_origins=["https://pit4-todo-list-fastapi.netlify.app"],  # Your Netlify frontend URL
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # for local dev
+        "pit4-todo-list-fastapi.netlify.app",
+    ],  # your deployed frontend],  # Change as needed for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# In-memory storage (for development)
-todos = []
-id_counter = 1
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.get("/todos")
-def get_todos():
-    return todos
+# Pydantic schemas for validation
+class TodoCreate(BaseModel):
+    title: str
+    completed: bool = False
 
-@app.post("/todos")
-def create_todo(todo: TodoCreate):
-    global id_counter
-    new_todo = {
-        "id": id_counter,
-        "text": todo.text,
-        "completed": todo.completed
-    }
-    todos.append(new_todo)
-    id_counter += 1
-    return new_todo
+class TodoOut(TodoCreate):
+    id: int
 
-@app.put("/todos/{todo_id}")
-def update_todo(todo_id: int, updated: TodoCreate):
-    for todo in todos:
-        if todo["id"] == todo_id:
-            todo["text"] = updated.text
-            todo["completed"] = updated.completed
-            return todo
-    raise HTTPException(status_code=404, detail="Todo not found")
+    class Config:
+        from_attributes = True
 
-@app.delete("/todos/{todo_id}")
-def delete_todo(todo_id: int):
-    global todos
-    todos = [todo for todo in todos if todo["id"] != todo_id]
+# Create a task
+@app.post("/api/todos/create/", response_model=TodoOut)
+def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
+    db_todo = Todo(**todo.dict())
+    db.add(db_todo)
+    db.commit()
+    db.refresh(db_todo)
+    return db_todo
+
+# Fetch all tasks
+@app.get("/api/todos/fetch/", response_model=List[TodoOut])
+def fetch_todos(db: Session = Depends(get_db)):
+    return db.query(Todo).all()
+
+@app.get("/")
+def root():
+    return {"message": "FastAPI backend is running."}
+
+# Update a task
+@app.put("/api/todos/{todo_id}/update/", response_model=TodoOut)
+def update_todo(todo_id: int, updated: TodoCreate, db: Session = Depends(get_db)):
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    todo.title = updated.title
+    todo.completed = updated.completed
+    db.commit()
+    db.refresh(todo)
+    return todo
+
+# Delete a task
+@app.delete("/api/todos/{todo_id}/delete/")
+def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    db.delete(todo)
+    db.commit()
     return {"message": "Todo deleted"}
