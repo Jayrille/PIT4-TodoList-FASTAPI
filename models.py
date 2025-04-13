@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean
-from database import Base
+from models import ToDo, Base
+
 
 
 class ToDo(Base):
