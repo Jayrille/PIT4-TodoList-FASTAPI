@@ -41,11 +41,14 @@ class TodoCreate(TodoBase):
 class TodoUpdate(TodoBase):
     pass
 
-class TodoInResponse(TodoBase):
+class TodoInResponse(BaseModel):
     id: int
+    text: str
+    completed: bool
 
     class Config:
-        orm_mode = True
+        orm_mode = True  # This is important for FastAPI to properly serialize the SQLAlchemy model
+
 
 # Get all tasks
 @app.get("/tasks", response_model=List[TodoInResponse])
