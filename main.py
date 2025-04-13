@@ -15,7 +15,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # for local dev
-        "pit4-todo-list-fastapi.netlify.app",
+        "http://pit4-todo-list-fastapi.netlify.app",
     ],  # your deployed frontend],  # Change as needed for production
     allow_credentials=True,
     allow_methods=["*"],
