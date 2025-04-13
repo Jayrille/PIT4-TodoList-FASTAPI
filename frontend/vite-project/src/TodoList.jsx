@@ -24,7 +24,7 @@ export default function TodoList() {
     useEffect(() => {
         async function fetchTasks() {
             try {
-                const response = await axios.get(`${API_URL}/todos`);
+                const response = await axios.get(`${API_URL}/tasks`);
                 setTasks(response.data);
             } catch (error) {
                 console.error("Error fetching tasks:", error);
@@ -35,7 +35,7 @@ export default function TodoList() {
 
     const removeTask = async (id) => {
         try {
-            await axios.delete(`${API_URL}/todos/${id}`);
+            await axios.delete(`${API_URL}/tasks/${id}`);
             setTasks(tasks.filter((task) => task.id !== id));
         } catch (error) {
             console.error("Error deleting task:", error);
@@ -45,7 +45,7 @@ export default function TodoList() {
     const addTask = async () => {
         if (task.trim() === "") return;
         try {
-            const response = await axios.post(`${API_URL}/todos`, {
+            const response = await axios.post(`${API_URL}/tasks`, {
                 text: task,
                 completed: false,
             });
@@ -60,7 +60,7 @@ export default function TodoList() {
         const updatedTask = tasks.find((t) => t.id === id);
         const updatedCompleted = !updatedTask.completed;
         try {
-            await axios.put(`${API_URL}/todos/${id}`, {
+            await axios.put(`${API_URL}/tasks/${id}`, {
                 ...updatedTask,
                 completed: updatedCompleted,
             });
@@ -80,7 +80,7 @@ export default function TodoList() {
     const confirmEdit = async (index) => {
         const updatedTask = tasks[index];
         try {
-            await axios.put(`${API_URL}/todos/${updatedTask.id}`, {
+            await axios.put(`${API_URL}/tasks/${updatedTask.id}`, {
                 ...updatedTask,
                 text: editedTask,
             });
